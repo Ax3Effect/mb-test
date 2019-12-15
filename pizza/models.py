@@ -17,6 +17,9 @@ class MenuItemSize(models.Model):
         default = Decimal(0.00)
     )
 
+    def __str__(self):
+        return "MenuItemSize {} - ${}".format(self.name, self.price)
+
 
 class MenuItem(models.Model):
     name = models.CharField(max_length = 80)
@@ -28,6 +31,9 @@ class MenuItem(models.Model):
     )
     available = models.BooleanField(default=True)
 
+    def __str__(self):
+        return "MenuItem {} {:20} ${}".format(self.name, self.description, self.price)
+
 
 class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -36,10 +42,22 @@ class Order(models.Model):
     customer = models.ForeignKey(AnonymousCustomer, on_delete=models.SET_NULL, null=True, related_name='orders')
     status = models.CharField(max_length=30, choices=OrderStatus.CHOICES, default=OrderStatus.DRAFT)
 
+    def __str__(self):
+        return "Order #{} - {} {}".format(self.pk, self.status, self.created_at)
 
+class OrderItemSize(models.Model):
+    #item = models.ForeignKey(OrderItem, related_name='size', editable=False, on_delete=models.CASCADE)
+    name = models.CharField(max_length=50)
+    price = models.DecimalField(
+        max_digits=6, decimal_places=2,
+        default = Decimal(0.00)
+    )
+
+    def __str__(self):
+        return "{} ${}".format(self.name, self.price)
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, related_name='items', editable=False, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
     item = models.ForeignKey(MenuItem, on_delete=models.SET_NULL, null=True)
     name = models.CharField(max_length=100)
     quantity = models.IntegerField(validators=[MinValueValidator(1)])
@@ -47,19 +65,13 @@ class OrderItem(models.Model):
         max_digits=6, decimal_places=2,
         default=Decimal(0.00)
     )
+    size = models.ForeignKey(OrderItemSize, on_delete=models.CASCADE)
 
     @property
     def total(self):
         total = Decimal(0.00)
-        total += self.price * self.quantity
-        for i in self.sizes.all():
-            total += i.price * self.quantity
+        total += (self.price + self.size.price) * self.quantity
         return total
 
-class OrderItemSize(models.Model):
-    item = models.ForeignKey(OrderItem, related_name='sizes', editable=False, on_delete=models.CASCADE)
-    name = models.CharField(max_length=50)
-    price = models.DecimalField(
-        max_digits=6, decimal_places=2,
-        default = Decimal(0.00)
-    )
+    def __str__(self):
+        return "{}, {} qty, ${}".format(self.name, self.quantity, self.total)
