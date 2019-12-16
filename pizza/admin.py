@@ -5,6 +5,13 @@ from pizza.models import *
 admin.site.register(MenuItem)
 admin.site.register(MenuItemSize)
 admin.site.register(AnonymousCustomer)
-admin.site.register(Order)
+
+class OrderItemAdmin(admin.TabularInline):
+    model = OrderItem
+
+class OrderAdmin(admin.ModelAdmin):
+    inlines = (OrderItemAdmin, )
+
+admin.site.register(Order, OrderAdmin)
 admin.site.register(OrderItem)
 admin.site.register(OrderItemSize)
