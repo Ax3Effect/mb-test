@@ -2,11 +2,8 @@ from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.decorators import permission_classes
-from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
@@ -18,10 +15,6 @@ from pizza.serializers import MenuItemSerializer, MenuItemSizeSerializer
 from pizza.serializers import OrderReadSerializer, OrderWriteSerializer, AnonCustomerSerializer
 # Create your views here.
 
-'''
-class CreateOrderView(APIView):
-    def post(self, request, format=None):
-'''
 
 class MenuViewSet(viewsets.ModelViewSet):
     permission_classes = []
@@ -38,7 +31,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.get_queryset().order_by('id')
     serializer_class = OrderReadSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['customer__email', 'status']
+    filterset_fields = ['customer', 'customer__email', 'status']
 
     def get_serializer_class(self):
         if self.action == "list" or self.action == "retrieve":

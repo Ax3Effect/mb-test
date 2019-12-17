@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from pizza.models import *
+from pizza.models import MenuItemSize, MenuItem, AnonymousCustomer
+from pizza.models import OrderItem, Order, OrderItemSize
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -31,7 +32,7 @@ class AnonCustomerSerializer(serializers.ModelSerializer):
 class OrderItemSerializer(serializers.ModelSerializer):
     item = MenuLightItemSerializer()
     size = serializers.ReadOnlyField(source='size.name')
-    
+
     class Meta:
         model = OrderItem
         fields = ('item', 'quantity', 'size', 'total')
@@ -50,6 +51,7 @@ class OrderPizzaWriteSerializer(serializers.Serializer):
     size = serializers.SlugField()
 
     def create(self, validated_data):
+        # Parse each pizza
         pizza_id = validated_data.pop('id')
         pizza_size_slug = validated_data.pop('size')
         try:
@@ -80,18 +82,14 @@ class OrderWriteSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        # Get items in a order
         order_items = validated_data.pop('items')
-        if validated_data.get("order_id", None):
-            order = get_object_or_404(Order, pk=validated_data.pop("order_id"))
-            for i in order.items.all():
-                i.delete()
+        if validated_data.get("customer_id", None):
+            customer = get_object_or_404(AnonymousCustomer, pk=validated_data.pop('customer_id'))
+            order = Order(customer=customer)
         else:
-            if validated_data.get("customer_id", None):
-                customer = get_object_or_404(AnonymousCustomer, pk=validated_data.pop('customer_id'))
-                order = Order(customer=customer)
-            else:
-                raise serializers.ValidationError("customer_id not included")
-        
+            raise serializers.ValidationError("customer_id not included")
+        # Go through each item and save for an order
         for item_data in order_items:
             item_serializer = OrderPizzaWriteSerializer(data=item_data, context={"order": order})
             if item_serializer.is_valid():
@@ -100,21 +98,20 @@ class OrderWriteSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(item_serializer.errors)
 
         return order
-    
+
     def update(self, instance, validated_data):
-        if instance.available_for_edit() == False:
+        if not instance.available_for_edit():
             raise serializers.ValidationError("Order is already past prep, items can't be edited")
 
-
         order_items = validated_data.pop('items')
+        # First, remove all items from an order
         for i in instance.items.all():
             i.delete()
-
+        # Then, add new items to the order
         for item_data in order_items:
             item_serializer = OrderPizzaWriteSerializer(data=item_data, context={"order": instance})
             if item_serializer.is_valid():
                 item_serializer.save()
             else:
                 raise serializers.ValidationError(item_serializer.errors)
-    
         return instance

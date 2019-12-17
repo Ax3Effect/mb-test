@@ -19,11 +19,11 @@ class AnonymousCustomer(models.Model):
         verbose_name = "Anonymous Customer"
         verbose_name_plural = "Anonymous Customers"
 
+
 class MenuItemSize(models.Model):
     name = models.CharField(max_length=50)
     price = models.DecimalField(
-        max_digits=6, decimal_places=2,
-        default = Decimal(0.00)
+        max_digits=6, decimal_places=2, default=Decimal(0.00)
     )
     slug = models.CharField(max_length=15, unique=True)
 
@@ -36,8 +36,8 @@ class MenuItemSize(models.Model):
 
 
 class MenuItem(models.Model):
-    name = models.CharField(max_length = 80)
-    description = models.CharField(max_length = 200, null=True, blank=True)
+    name = models.CharField(max_length=80)
+    description = models.CharField(max_length=200, null=True, blank=True)
     size = models.ManyToManyField(MenuItemSize)
     price = models.DecimalField(
         max_digits=6, decimal_places=2,
@@ -96,12 +96,11 @@ class Order(models.Model):
         verbose_name = "Order"
         verbose_name_plural = "Orders"
 
+
 class OrderItemSize(models.Model):
-    #item = models.ForeignKey(OrderItem, related_name='size', editable=False, on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
     price = models.DecimalField(
-        max_digits=6, decimal_places=2,
-        default = Decimal(0.00)
+        max_digits=6, decimal_places=2, default=Decimal(0.00)
     )
 
     def __str__(self):
@@ -110,6 +109,7 @@ class OrderItemSize(models.Model):
     class Meta:
         verbose_name = "Pizza Size on Order"
         verbose_name_plural = "Pizza Sizes on Order"
+
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)

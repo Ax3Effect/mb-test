@@ -1,45 +1,36 @@
-from django.test import TestCase
-from rest_framework.test import APIClient
-from nose.tools import ok_, eq_
 from pizza.models import MenuItem, MenuItemSize
 from decimal import Decimal
 from rest_framework.test import APITestCase
-# Create your tests here.
 
 class OrdersTestCase(APITestCase):
-
     def setUp(self):
         self.order_url = '/api/v1/orders/'
         self.customer_url = '/api/v1/customers/'
         self.menu_url = '/api/v1/menu/'
 
-
     def setCustomer(self):
         customer_data = {
-            "full_name":"Richard Hendriks",
-            "phone":"+447594392684",
-            "address":"17 Canal St",
-            "email":"test@test.net"
+            "full_name": "Richard Hendriks",
+            "phone": "+447594392684",
+            "address": "17 Canal St",
+            "email": "test@test.net"
         }
         r = self.client.post(self.customer_url, data=customer_data, format='json')
         return r.json()
 
     def setMenu(self):
-        sizes = [
-                MenuItemSize.objects.create(name="Small", price=Decimal(0), slug="small"),
-                MenuItemSize.objects.create(name="Medium", price=Decimal(2.99), slug="medium"),
-                MenuItemSize.objects.create(name="Large", price=Decimal(4.99), slug="large"),
-                MenuItemSize.objects.create(name="Extra Large", price=Decimal(6.99), slug="extralarge"),
-                MenuItemSize.objects.create(name="Super Extra Large", price=Decimal(9.99), slug="superextralarge")
-            ]
-
+        sizes = [MenuItemSize.objects.create(name="Small", price=Decimal(0), slug="small"),
+                 MenuItemSize.objects.create(name="Medium", price=Decimal(2.99), slug="medium"),
+                 MenuItemSize.objects.create(name="Large", price=Decimal(4.99), slug="large"),
+                 MenuItemSize.objects.create(name="Extra Large", price=Decimal(6.99), slug="extralarge"),
+                 MenuItemSize.objects.create(name="Super Extra Large", price=Decimal(9.99), slug="superextralarge")]
+        
         pizza1 = MenuItem.objects.create(name="Pepperoni", description="Pepperoni pizza", price=Decimal(5))
         pizza2 = MenuItem.objects.create(name="Mozzarella", description="Cheese pizza", price=Decimal(4))
 
         for size in sizes:
             pizza1.size.add(size)
             pizza2.size.add(size)
-
 
     def setOrder(self):
         r_customer = self.client.get(self.customer_url)
@@ -51,22 +42,21 @@ class OrdersTestCase(APITestCase):
         r_customer = self.client.get(self.customer_url).json()
         r_menu = self.client.get(self.menu_url).json()
 
-
         order_data = {
-                    "customer_id":r_customer["results"][0]["id"],
+                    "customer_id": r_customer["results"][0]["id"],
                     "items": [{
-                            "id":r_menu["results"][0]["id"],
-                            "quantity":2,
-                            "size":"small"
+                            "id": r_menu["results"][0]["id"],
+                            "quantity": 2,
+                            "size": "small"
                             }, {
-                                "id":r_menu["results"][0]["id"],
-                                "quantity":1,
-                                "size":"large"
+                                "id": r_menu["results"][0]["id"],
+                                "quantity": 1,
+                                "size": "large"
                             },
                             {
-                                "id":r_menu["results"][1]["id"],
-                                "quantity":3,
-                                "size":"medium"
+                                "id": r_menu["results"][1]["id"],
+                                "quantity": 3,
+                                "size": "medium"
                             }
                         ]
                     }
@@ -74,24 +64,20 @@ class OrdersTestCase(APITestCase):
         r = self.client.post(self.order_url, order_data, format='json')
         return r.json()
 
-
-
     def test_zero_orders(self):
-
         response = self.client.get(self.order_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['count'], 0)
 
     def test_create_customer(self):
         self.setCustomer()
-        #self.assertEqual(r.json()['full_name'], customer_data["full_name"])
         r2 = self.client.get(self.customer_url)
         self.assertEqual(r2.json()['results'][0]["full_name"], "Richard Hendriks")
         self.assertEqual(r2.json()['count'], 1)
 
     def test_menu(self):
         self.setMenu()
-               
+
         r = self.client.get(self.menu_url)
         data = r.json()["results"]
         self.assertEqual(data[0]["name"], "Pepperoni")
@@ -110,7 +96,7 @@ class OrdersTestCase(APITestCase):
 
     def test_add_order(self):
         data = self.setOrder()
-        
+
         self.assertEqual(data["customer"]["full_name"], "Richard Hendriks")
         self.assertEqual(data["status"], "draft")
         self.assertEqual(data["items"][0]["item"]["name"], "Pepperoni")
@@ -126,11 +112,11 @@ class OrdersTestCase(APITestCase):
     def test_edit_items_allowed(self):
         order = self.setOrder()
         r_menu = self.client.get(self.menu_url).json()
-        
+
         new_order_url = self.order_url + "{}/".format(order["id"])
         new_items = {
-            "items":[{
-                "id":r_menu["results"][0]["id"],
+            "items": [{
+                "id": r_menu["results"][0]["id"],
                 "quantity":10,
                 "size":"superextralarge"
             }]
@@ -147,8 +133,8 @@ class OrdersTestCase(APITestCase):
     def test_set_status(self):
         order = self.setOrder()
         new_order_url = self.order_url + "{}/set_status/".format(order["id"])
-        
-        status_data = {"status":"delivered"}
+
+        status_data = {"status": "delivered"}
         r2 = self.client.post(new_order_url, status_data, format='json')
         self.assertEqual(r2.status_code, 201)
 
@@ -156,14 +142,14 @@ class OrdersTestCase(APITestCase):
         order = self.setOrder()
         status_url = self.order_url + "{}/set_status/".format(order["id"])
         new_order_url = self.order_url + "{}/".format(order["id"])
-        
+
         r_menu = self.client.get(self.menu_url).json()
-        status_data = {"status":"delivered"}
+        status_data = {"status": "delivered"}
         r_status = self.client.post(status_url, data=status_data, format='json')
         self.assertEqual(r_status.status_code, 201)
         new_items = {
-            "items":[{
-                "id":r_menu["results"][0]["id"],
+            "items": [{
+                "id": r_menu["results"][0]["id"],
                 "quantity":10,
                 "size":"superextralarge"
             }]
@@ -172,4 +158,25 @@ class OrdersTestCase(APITestCase):
         r = self.client.put(new_order_url, new_items, format='json').json()
         self.assertEqual(r, ["Order is already past prep, items can't be edited"])
 
-        
+    def test_delete_order(self):
+        order = self.setOrder()
+        r = self.client.delete(self.order_url + "{}/".format(order["id"]))
+        self.assertEqual(r.status_code, 204)
+
+    def test_filter_customer_id(self):
+        order = self.setOrder()
+        r = self.client.get(self.order_url + "?customer={}".format(order["customer"]["id"])).json()
+        self.assertEqual(r["count"], 1)
+        self.assertEqual(r["results"][0]["customer"]["id"], order["customer"]["id"])
+
+    def test_filter_customer_email(self):
+        order = self.setOrder()
+        r = self.client.get(self.order_url + "?customer__email={}".format(order["customer"]["email"])).json()
+        self.assertEqual(r["count"], 1)
+        self.assertEqual(r["results"][0]["customer"]["email"], order["customer"]["email"])
+
+    def test_filter_status(self):
+        order = self.setOrder()
+        r = self.client.get(self.order_url + "?status=draft").json()
+        self.assertEqual(r["count"], 1)
+        self.assertEqual("draft", order["status"])
