@@ -4,15 +4,16 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 
+
 class MenuItemSizeSerializer(serializers.ModelSerializer):
     class Meta:
         model = MenuItemSize
-        fields = ('id', 'name', 'price')
+        fields = ('id', 'name', 'price', 'slug')
 
 class MenuLightItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = MenuItem
-        fields = ('id', 'name', 'description', 'price', 'available')
+        fields = ('id', 'name', 'description', 'available')
 
 class MenuItemSerializer(MenuLightItemSerializer):
     size = MenuItemSizeSerializer(many=True, read_only=True)
@@ -27,14 +28,13 @@ class AnonCustomerSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-
 class OrderItemSerializer(serializers.ModelSerializer):
     item = MenuLightItemSerializer()
     size = serializers.ReadOnlyField(source='size.name')
     
     class Meta:
         model = OrderItem
-        fields = ('item', 'quantity', 'price', 'size', 'total')
+        fields = ('item', 'quantity', 'size', 'total')
 
 class OrderReadSerializer(serializers.ModelSerializer):
     customer = AnonCustomerSerializer()
@@ -48,11 +48,7 @@ class OrderPizzaWriteSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     quantity = serializers.IntegerField()
     size = serializers.SlugField()
-    '''
-    class Meta:
-        model = OrderItem
-        fields = '__all__'
-    '''
+
     def create(self, validated_data):
         pizza_id = validated_data.pop('id')
         pizza_size_slug = validated_data.pop('size')
@@ -65,7 +61,7 @@ class OrderPizzaWriteSerializer(serializers.Serializer):
 
         order_size = OrderItemSize.objects.create(name=pizza_size.name, price=pizza_size.price)
         order.save()
-        order_item = OrderItem.objects.create(order=order, item=pizza, quantity=validated_data.pop('quantity'), size=order_size)
+        order_item = OrderItem.objects.create(order=order, item=pizza, price=pizza.price, quantity=validated_data.pop('quantity'), size=order_size)
         return order_item
 
 

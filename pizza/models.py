@@ -7,12 +7,17 @@ from pizza import OrderStatus
 
 class AnonymousCustomer(models.Model):
     full_name = models.CharField(max_length=100)
-    phone = models.CharField(max_length=30)
+    phone = models.CharField(max_length=30, unique=True)
     address = models.CharField(max_length=300)
-    email = models.EmailField(max_length=100)
+    email = models.EmailField(max_length=100, unique=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['id']
+        verbose_name = "Anonymous Customer"
+        verbose_name_plural = "Anonymous Customers"
 
 class MenuItemSize(models.Model):
     name = models.CharField(max_length=50)
@@ -24,6 +29,10 @@ class MenuItemSize(models.Model):
 
     def __str__(self):
         return "MenuItemSize {} - ${}".format(self.name, self.price)
+
+    class Meta:
+        verbose_name = "Pizza Size"
+        verbose_name_plural = "Pizza Sizes"
 
 
 class MenuItem(models.Model):
@@ -39,6 +48,11 @@ class MenuItem(models.Model):
     def __str__(self):
         return "{} MenuItem {} {} ${}".format(self.id, self.name, self.description, self.price)
 
+    class Meta:
+        ordering = ['id']
+        verbose_name = "Pizza on Menu"
+        verbose_name_plural = "Pizzas on Menu"
+
 
 class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -46,6 +60,14 @@ class Order(models.Model):
 
     customer = models.ForeignKey(AnonymousCustomer, on_delete=models.SET_NULL, null=True, related_name='orders')
     status = models.CharField(max_length=30, choices=OrderStatus.CHOICES, default=OrderStatus.DRAFT)
+
+    @property
+    def total(self):
+        total = Decimal(0.00)
+        for pizza in self.items.all():
+            total += pizza.total
+        print(total)    
+        return total
 
     def all_statuses(self):
         available = []
@@ -70,6 +92,10 @@ class Order(models.Model):
     def __str__(self):
         return "Order #{} - {} {}".format(self.pk, self.status, self.created_at)
 
+    class Meta:
+        verbose_name = "Order"
+        verbose_name_plural = "Orders"
+
 class OrderItemSize(models.Model):
     #item = models.ForeignKey(OrderItem, related_name='size', editable=False, on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
@@ -80,6 +106,10 @@ class OrderItemSize(models.Model):
 
     def __str__(self):
         return "{} ${}".format(self.name, self.price)
+
+    class Meta:
+        verbose_name = "Pizza Size on Order"
+        verbose_name_plural = "Pizza Sizes on Order"
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
@@ -99,3 +129,7 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return "{} qty, ${}".format(self.quantity, self.total)
+
+    class Meta:
+        verbose_name = "Pizza on Order"
+        verbose_name_plural = "Pizzas on Order"
